@@ -7,7 +7,6 @@ use App\Http\Requests\Post\StoreRequest;
 use App\Http\Requests\Post\UpdateRequest;
 use App\Http\Resources\PostResource;
 use App\Models\Post;
-use Illuminate\Http\Request;
 
 class PostController extends Controller
 {
@@ -16,7 +15,9 @@ class PostController extends Controller
      */
     public function index()
     {
-        return PostResource::collection(Post::with('user')->paginate(1));
+        $user = request()->user();
+        $posts = $user->posts()->paginate(10);
+        return PostResource::collection($posts);
     }
 
     /**
@@ -36,6 +37,9 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
+        if (request()->user()->cannot('view', $post)) {
+            abort(403, 'access forbidden');
+        }
         return new PostResource($post);
     }
 
@@ -44,6 +48,10 @@ class PostController extends Controller
      */
     public function update(UpdateRequest $request, Post $post)
     {
+        if (request()->user()->cannot('update', $post)) {
+            abort(403, 'access forbidden');
+        }
+
         $data = $request->validated();
 
         $post->update($data);
@@ -56,6 +64,10 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
+        if (request()->user()->cannot('delete', $post)) {
+            abort(403, 'access forbidden');
+        }
+
         $post->delete();
 
         return response()->noContent();
